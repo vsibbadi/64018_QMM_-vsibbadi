@@ -1,0 +1,122 @@
+---
+title: "Module 4 - Solve LP Model Using R"
+author: "Vrithik Sibbadi"
+date: "2024-09-22"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+### 1: Install and Load the Required Library
+
+```{r}
+# Install lpSolve 
+# install.packages("lpSolve")
+
+# Load lpSolve package
+library(lpSolve)
+```
+
+### 2: Define the Objective Function Coefficients
+
+This block defines the profit coefficients for large, medium, and small units produced at each of the three plants. These coefficients correspond to the net unit profits for each size.
+
+```{r}
+# Coefficients of the objective function (profits)
+objective_coefficients <- c(420, 420, 420,  # large units: x11, x12, x13
+                            360, 360, 360,  # medium units: x21, x22, x23
+                            300, 300, 300)  # small units: x31, x32, x33
+```
+
+### 3: Define the Constraints Matrix (LHS)
+
+This block defines the constraints matrix, where each row corresponds to a constraint such as plant capacities, storage space limits, and demand limitations.
+
+```{r}
+# Matrix of constraint coefficients (LHS)
+constraints_matrix <- rbind(
+  # Capacity constraints
+  c(1, 0, 0, 1, 0, 0, 1, 0, 0),  # Plant 1: x11 + x21 + x31 <= 750
+  c(0, 1, 0, 0, 1, 0, 0, 1, 0),  # Plant 2: x12 + x22 + x32 <= 900
+  c(0, 0, 1, 0, 0, 1, 0, 0, 1),  # Plant 3: x13 + x23 + x33 <= 450
+
+  # Storage constraints
+  c(20, 0, 0, 15, 0, 0, 12, 0, 0),  # Plant 1: 20x11 + 15x21 + 12x31 <= 13000
+  c(0, 20, 0, 0, 15, 0, 0, 12, 0),  # Plant 2: 20x12 + 15x22 + 12x32 <= 12000
+  c(0, 0, 20, 0, 0, 15, 0, 0, 12),  # Plant 3: 20x13 + 15x23 + 12x33 <= 5000
+
+  # Demand constraints
+  c(1, 1, 1, 0, 0, 0, 0, 0, 0),    # Large: x11 + x12 + x13 <= 900
+  c(0, 0, 0, 1, 1, 1, 0, 0, 0),    # Medium: x21 + x22 + x23 <= 1200
+  c(0, 0, 0, 0, 0, 0, 1, 1, 1)     # Small: x31 + x32 + x33 <= 750
+)
+```
+
+### 4: Define the Right-Hand Side (RHS) Values for Constraints
+
+This block defines the right-hand side values corresponding to each of the constraints in the matrix, which represent the capacity, storage, and demand limits.
+
+```{r}
+# Right-hand side of constraints (RHS)
+constraints_rhs <- c(750, 900, 450, 13000, 12000, 5000, 900, 1200, 750)
+```
+
+### 5: Define the Directions for Each Constraint
+
+This block sets all constraints to be "less than or equal to" (`<=`), since we are limiting the production by available resources (capacity, storage, and demand).
+
+```{r}
+# Directions of the constraints (all are "<=")
+constraint_directions <- rep("<=", length(constraints_rhs))
+```
+
+### 6: Solve the Linear Programming & Display Results
+
+This block solves the linear programming problem using the `lp` function from the `lpSolve` package. It maximizes the objective function based on the given constraints. It then extracts and formats the solution to display the optimal production plan for each plant and calculates the maximum profit. The results are then printed.
+
+```{r}
+# Solve the linear program
+solution <- lp("max", objective_coefficients, constraints_matrix, constraint_directions, constraints_rhs)
+
+# Extract the optimal production values
+optimal_values <- matrix(solution$solution, nrow=3, byrow=TRUE,
+                         dimnames = list(c("Large", "Medium", "Small"), c("Plant 1", "Plant 2", "Plant 3")))
+
+# Print the optimal production plan
+print("Optimal production plan:")
+print(optimal_values)
+
+# Maximum profit
+max_profit <- solution$objval
+print(paste("Maximum profit:", max_profit))
+```
+
+### Final Results:
+
+The optimal production plan to maximize profit is as follows:
+
+-   Plant 1 should produce:
+
+    -   350 large units
+
+    -   400 medium units
+
+    -   0 small units
+
+-   Plant 2 should produce:
+
+    -   0 large units
+
+    -   400 medium units
+
+    -   500 small units
+
+-   Plant 3 should produce:
+
+    -   0 large units
+
+    -   133.33 medium units
+
+    -   250 small units
+
+The maximum profit achievable with this plan is \$708,000 per day.
